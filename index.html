@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نقشه مشتریان | ردیاب مشتریان هدایت</title>
-<meta name="description" content="نمایش و مدیریت مشتریان روی نقشه — کد مشتری، منطقه، فیلتر و جستجو">
+<meta name="description" content="نمایش و مدیریت مشتریان روی نقشه — کد مشتری، منطقه، فیلتر، ثبت بازاریاب و مسیریابی">
 
 <!-- Vazirmatn (Persian digits) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/misc/Farsi-Digits/Vazirmatn-FD-font-face.css">
@@ -36,9 +36,22 @@
 
   <div class="header-actions">
     <div class="legend" id="legend" aria-label="راهنمای رنگ نشانگرها"></div>
+
     <button type="button" class="btn btn-ghost" id="btn-quality">
       <span>کیفیت داده</span>
       <span class="badge badge-warn" id="quality-count">۰</span>
+    </button>
+
+    <button type="button" class="btn btn-primary" id="btn-add-customer">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" aria-hidden="true">
+        <path d="M12 5v14M5 12h14"></path>
+      </svg>
+      <span>افزودن مشتری</span>
+    </button>
+
+    <button type="button" class="btn btn-soft rep-chip" id="btn-rep" title="پروفایل بازاریاب">
+      <span class="rep-dot" aria-hidden="true"></span>
+      <span id="rep-chip-name">ورود بازاریاب</span>
     </button>
   </div>
 </header>
@@ -57,16 +70,35 @@
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.6-3.6"></path>
         </svg>
-        <input type="search" id="search" placeholder="جستجو: کد مشتری، نام، فروشگاه، تلفن، آدرس…" autocomplete="off">
+        <input type="search" id="search" placeholder="جستجو: کد مشتری، نام، فروشگاه، تلفن، آدرس، یادداشت…" autocomplete="off">
         <button type="button" class="clear-search" id="clear-search" title="پاک کردن" hidden>&times;</button>
       </div>
     </div>
 
-    <div class="panel filters">
+    <!-- ---------- SALES REP PANEL (single compact row) ---------- -->
+    <div class="panel" id="rep-panel">
+      <div class="rep-head">
+        <span class="rep-dot" aria-hidden="true"></span>
+        <button type="button" class="rep-id" id="btn-rep-change" title="تغییر پروفایل بازاریاب">
+          <b id="rep-panel-name">ورود بازاریاب</b>
+          <span id="rep-panel-meta">برای ثبت مشتری، نام خود را وارد کنید</span>
+        </button>
+        <button type="button" class="btn btn-soft btn-xs" id="btn-show-mine">ثبت‌های من</button>
+        <button type="button" class="btn btn-soft btn-xs" id="btn-rep-data">داده‌ها</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+    </div>
+
+    <div class="panel filters" id="filters-panel">
       <div class="panel-head">
         <span>فیلترها</span>
-        <button type="button" class="link-btn" id="btn-reset-filters">پاک کردن فیلترها</button>
+        <span class="panel-head-actions">
+          <button type="button" class="link-btn" id="btn-reset-filters">پاک کردن فیلترها</button>
+          <button type="button" class="link-btn" id="btn-toggle-filters" aria-expanded="true">بستن</button>
+        </span>
       </div>
+
+      <div class="filters-body" id="filters-body">
 
       <label class="field">
         <span>استان</span>
@@ -108,6 +140,26 @@
           <option value="manual">موقعیت دستی</option>
         </select>
       </label>
+
+      <label class="field">
+        <span>وضعیت پیگیری</span>
+        <select id="f-followup">
+          <option value="">همه</option>
+          <option value="__none__">بدون وضعیت</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>منبع داده</span>
+        <select id="f-source">
+          <option value="">همه</option>
+          <option value="imported">داده اصلی (اکسل)</option>
+          <option value="local">ثبت‌شده توسط بازاریاب</option>
+          <option value="mine">ثبت‌های بازاریاب فعلی</option>
+          <option value="noted">دارای یادداشت بازاریاب</option>
+        </select>
+      </label>
+      </div>
     </div>
 
     <div class="panel results">
@@ -126,11 +178,61 @@
   <!-- ---------- MAP (right) ---------- -->
   <section class="map-wrap" aria-label="نقشه">
     <div id="map"></div>
+
     <div class="map-toolbar">
       <button type="button" class="btn btn-soft" id="btn-fit">نمایش همه</button>
       <button type="button" class="btn btn-soft" id="btn-fit-results" title="زوم روی نتایج فیلتر">زوم روی نتایج</button>
+      <button type="button" class="btn btn-primary" id="btn-add-customer-map">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <path d="M12 5v14M5 12h14"></path>
+        </svg>
+        <span>ثبت مشتری روی نقشه</span>
+      </button>
+      <button type="button" class="btn btn-soft" id="btn-my-location">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.2"></circle>
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+        </svg>
+        <span>موقعیت من</span>
+      </button>
+      <button type="button" class="btn btn-soft" id="btn-route">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="6" cy="19" r="2.4"></circle><circle cx="18" cy="5" r="2.4"></circle>
+          <path d="M8.4 19h4.1a3.5 3.5 0 0 0 0-7H9.5a3.5 3.5 0 0 1 0-7h6.1"></path>
+        </svg>
+        <span>مسیریابی</span>
+      </button>
+      <button type="button" class="btn btn-soft" id="btn-route-clear" hidden>پاک کردن مسیر</button>
     </div>
+
     <div class="map-hint" id="map-hint" hidden></div>
+
+    <div class="pick-banner" id="pick-banner" hidden>
+      <span class="pick-pulse" aria-hidden="true"></span>
+      <span id="pick-banner-text"></span>
+      <button type="button" class="btn btn-soft" id="pick-cancel">انصراف</button>
+    </div>
+
+    <!-- ---------- ROUTE PANEL ---------- -->
+    <div class="route-panel" id="route-panel" hidden>
+      <div class="route-head">
+        <span class="route-title">مسیر رانندگی</span>
+        <button type="button" class="icon-btn" id="route-close" title="بستن">&times;</button>
+      </div>
+      <div class="route-stats">
+        <div class="route-stat">
+          <span class="k">مسافت</span>
+          <span class="v" id="route-dist">—</span>
+        </div>
+        <div class="route-stat">
+          <span class="k">زمان تقریبی</span>
+          <span class="v" id="route-time">—</span>
+        </div>
+      </div>
+      <div class="route-fromto" id="route-fromto"></div>
+      <div class="route-steps" id="route-steps"></div>
+      <p class="route-note">مسیر از سرور عمومی OSRM محاسبه می‌شود و ممکن است با واقعیت کمی اختلاف داشته باشد.</p>
+    </div>
   </section>
 
 </main>
@@ -164,6 +266,160 @@
   </div>
 </div>
 
+<!-- ================= SALES REP MODAL ================= -->
+<div class="modal-backdrop" id="rep-modal" hidden>
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="rep-title">
+    <header class="modal-head">
+      <div>
+        <h2 id="rep-title">پروفایل بازاریاب</h2>
+        <p>نام شما روی هر مشتری و یادداشتی که ثبت می‌کنید درج می‌شود.</p>
+      </div>
+      <button type="button" class="icon-btn" data-close-modal title="بستن">&times;</button>
+    </header>
+    <div class="modal-body">
+      <div id="rep-known" class="rep-known"></div>
+
+      <div class="form-grid">
+        <label class="form-field full">
+          <span>نام و نام خانوادگی بازاریاب <b class="req">*</b></span>
+          <input type="text" id="rep-name" placeholder="مثال: علی رضایی" autocomplete="off">
+        </label>
+        <label class="form-field">
+          <span>کد پرسنلی / شماره تماس</span>
+          <input type="text" id="rep-code" placeholder="اختیاری" autocomplete="off" dir="ltr">
+        </label>
+        <label class="form-field">
+          <span>منطقه فعالیت</span>
+          <select id="rep-region"></select>
+        </label>
+      </div>
+      <p class="editor-note">ورود بدون رمز است؛ این ابزار فقط برای برچسب‌گذاری ثبت‌هاست، نه احراز هویت.</p>
+    </div>
+    <footer class="modal-foot">
+      <button type="button" class="btn btn-primary" id="rep-save">ثبت و ورود</button>
+      <button type="button" class="btn" id="rep-logout">خروج از پروفایل</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ================= REP DATA (export / import) MODAL ================= -->
+<div class="modal-backdrop" id="data-modal" hidden>
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="data-title">
+    <header class="modal-head">
+      <div>
+        <h2 id="data-title">داده‌های بازاریاب</h2>
+        <p>مشتری‌های ثبت‌شده، یادداشت‌ها و موقعیت‌های دستی</p>
+      </div>
+      <button type="button" class="icon-btn" data-close-modal title="بستن">&times;</button>
+    </header>
+    <div class="modal-body">
+      <div class="data-stats" id="data-stats"></div>
+      <p class="editor-note">
+        این داده‌ها فقط در همین مرورگر ذخیره می‌شوند و بین بازاریاب‌ها به اشتراک گذاشته نمی‌شوند.
+        برای تحویل به مدیریت «خروجی CSV» (بازشدن در اکسل) یا برای پشتیبان کامل «خروجی JSON» بگیرید.
+      </p>
+      <div class="data-actions">
+        <button type="button" class="btn btn-primary" id="btn-export-csv">خروجی CSV برای مدیریت</button>
+        <button type="button" class="btn" id="btn-export-json">خروجی JSON (پشتیبان کامل)</button>
+        <button type="button" class="btn" id="btn-import-json">ورود از فایل JSON</button>
+        <button type="button" class="btn btn-danger" id="btn-clear-local">پاک کردن داده‌های بازاریاب</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ADD CUSTOMER MODAL ================= -->
+<div class="modal-backdrop" id="add-modal" hidden>
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="add-title">
+    <header class="modal-head">
+      <div>
+        <h2 id="add-title">ثبت مشتری جدید</h2>
+        <p id="add-sub">این مشتری در همین مرورگر ذخیره می‌شود و روی نقشه نمایش داده می‌شود.</p>
+      </div>
+      <button type="button" class="icon-btn" data-close-modal title="بستن">&times;</button>
+    </header>
+
+    <div class="modal-body">
+      <div class="coord-chip" id="add-coord-chip"></div>
+
+      <div class="form-grid">
+        <label class="form-field full">
+          <span>نام مشتری <b class="req">*</b></span>
+          <input type="text" id="a-name" placeholder="نام شخص یا مسئول فروشگاه" autocomplete="off">
+        </label>
+        <label class="form-field">
+          <span>نام فروشگاه / شرکت</span>
+          <input type="text" id="a-shop" autocomplete="off">
+        </label>
+        <label class="form-field">
+          <span>کد مشتری (کد حساب)</span>
+          <input type="text" id="a-code" inputmode="numeric" dir="ltr" placeholder="۱۰ رقم — اگر ندارید خالی بگذارید" autocomplete="off">
+        </label>
+        <label class="form-field">
+          <span>موبایل</span>
+          <input type="text" id="a-mobile" inputmode="tel" dir="ltr" placeholder="09xxxxxxxxx" autocomplete="off">
+        </label>
+        <label class="form-field">
+          <span>تلفن ثابت</span>
+          <input type="text" id="a-phone" inputmode="tel" dir="ltr" placeholder="031xxxxxxxx" autocomplete="off">
+        </label>
+        <label class="form-field">
+          <span>استان</span>
+          <input type="text" id="a-province" list="dl-province" autocomplete="off">
+        </label>
+        <label class="form-field">
+          <span>شهر</span>
+          <input type="text" id="a-city" list="dl-city" autocomplete="off">
+        </label>
+        <label class="form-field">
+          <span>منطقه</span>
+          <select id="a-region"></select>
+        </label>
+        <label class="form-field">
+          <span>نوع فروش</span>
+          <input type="text" id="a-sales" list="dl-sales" autocomplete="off">
+        </label>
+        <label class="form-field">
+          <span>وضعیت پیگیری</span>
+          <select id="a-followup"></select>
+        </label>
+        <label class="form-field full">
+          <span>آدرس</span>
+          <textarea id="a-address" rows="2" placeholder="آدرس دقیق محل مشتری"></textarea>
+        </label>
+        <label class="form-field full">
+          <span>یادداشت بازاریاب</span>
+          <textarea id="a-note" rows="2" placeholder="توضیح، نتیجه تماس، سفارش احتمالی…"></textarea>
+        </label>
+      </div>
+
+      <div class="coord-row">
+        <label class="form-field">
+          <span>Latitude</span>
+          <input type="number" step="0.000001" id="a-lat" dir="ltr">
+        </label>
+        <label class="form-field">
+          <span>Longitude</span>
+          <input type="number" step="0.000001" id="a-lng" dir="ltr">
+        </label>
+        <button type="button" class="btn btn-soft" id="a-repick">تغییر موقعیت روی نقشه</button>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button type="button" class="btn btn-primary" id="a-save">ذخیره مشتری</button>
+      <button type="button" class="btn" id="a-cancel">انصراف</button>
+      <span class="foot-spacer"></span>
+      <span class="foot-note" id="add-rep-note"></span>
+    </footer>
+  </div>
+</div>
+
+<!-- datalists for the add-customer form -->
+<datalist id="dl-province"></datalist>
+<datalist id="dl-city"></datalist>
+<datalist id="dl-sales"></datalist>
+
 <!-- ================= TOAST ================= -->
 <div class="toast" id="toast" hidden></div>
 
@@ -172,6 +428,12 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <!-- Embedded copy of data/customers.json, so the app also runs over file:// -->
 <script src="data/customers.js"></script>
+
+<!-- ---------- CORE ---------- -->
 <script src="app.js"></script>
+<!-- ---------- FEATURE MODULES (vanilla, no build step) ---------- -->
+<script src="js/store.js"></script>
+<script src="js/routing.js"></script>
+<script src="js/editor.js"></script>
 </body>
 </html>
