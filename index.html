@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نقشه مشتریان | ردیاب مشتریان هدایت</title>
+<meta name="description" content="نمایش و مدیریت مشتریان روی نقشه — کد مشتری، منطقه، فیلتر و جستجو">
+
+<!-- Vazirmatn (Persian digits) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/misc/Farsi-Digits/Vazirmatn-FD-font-face.css">
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<!-- Leaflet MarkerCluster -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+
+<!-- ================= HEADER ================= -->
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"></path>
+        <circle cx="12" cy="10" r="2.6"></circle>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1>نقشه مشتریان</h1>
+      <p>مدیریت و نمایش مشتریان روی نقشه</p>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <div class="legend" id="legend" aria-label="راهنمای رنگ نشانگرها"></div>
+    <button type="button" class="btn btn-ghost" id="btn-quality">
+      <span>کیفیت داده</span>
+      <span class="badge badge-warn" id="quality-count">۰</span>
+    </button>
+  </div>
+</header>
+
+<!-- ================= DASHBOARD ================= -->
+<section class="dashboard" id="dashboard" aria-label="آمار کلی"></section>
+
+<!-- ================= MAIN ================= -->
+<main class="layout">
+
+  <!-- ---------- SIDEBAR (left) ---------- -->
+  <aside class="sidebar" aria-label="جستجو و فیلتر">
+
+    <div class="panel">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.6-3.6"></path>
+        </svg>
+        <input type="search" id="search" placeholder="جستجو: کد مشتری، نام، فروشگاه، تلفن، آدرس…" autocomplete="off">
+        <button type="button" class="clear-search" id="clear-search" title="پاک کردن" hidden>&times;</button>
+      </div>
+    </div>
+
+    <div class="panel filters">
+      <div class="panel-head">
+        <span>فیلترها</span>
+        <button type="button" class="link-btn" id="btn-reset-filters">پاک کردن فیلترها</button>
+      </div>
+
+      <label class="field">
+        <span>استان</span>
+        <select id="f-province"><option value="">همه</option></select>
+      </label>
+
+      <label class="field">
+        <span>شهر</span>
+        <select id="f-city"><option value="">همه</option></select>
+      </label>
+
+      <label class="field">
+        <span>منطقه</span>
+        <select id="f-region"><option value="">همه مناطق</option></select>
+      </label>
+
+      <label class="field">
+        <span>کد منطقه</span>
+        <select id="f-region-code"><option value="">همه کدها</option></select>
+      </label>
+
+      <label class="field">
+        <span>نوع مشتری</span>
+        <select id="f-type"><option value="">همه</option></select>
+      </label>
+
+      <label class="field">
+        <span>نوع فروش</span>
+        <select id="f-sales"><option value="">همه</option></select>
+      </label>
+
+      <label class="field">
+        <span>وضعیت موقعیت</span>
+        <select id="f-location">
+          <option value="">همه</option>
+          <option value="has">دارای موقعیت</option>
+          <option value="none">بدون موقعیت</option>
+          <option value="approximate">موقعیت تقریبی (ژئوکد)</option>
+          <option value="manual">موقعیت دستی</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="panel results">
+      <div class="panel-head">
+        <span>لیست مشتریان</span>
+        <span class="result-count"><b id="result-count">۰</b> مشتری</span>
+      </div>
+      <div class="active-chips" id="active-chips"></div>
+      <div class="customer-list" id="customer-list" role="list"></div>
+      <button type="button" class="btn btn-soft btn-block" id="btn-more" hidden>نمایش بیشتر</button>
+      <p class="empty-state" id="list-empty" hidden>مشتری‌ای با این شرایط پیدا نشد.</p>
+    </div>
+
+  </aside>
+
+  <!-- ---------- MAP (right) ---------- -->
+  <section class="map-wrap" aria-label="نقشه">
+    <div id="map"></div>
+    <div class="map-toolbar">
+      <button type="button" class="btn btn-soft" id="btn-fit">نمایش همه</button>
+      <button type="button" class="btn btn-soft" id="btn-fit-results" title="زوم روی نتایج فیلتر">زوم روی نتایج</button>
+    </div>
+    <div class="map-hint" id="map-hint" hidden></div>
+  </section>
+
+</main>
+
+<!-- ================= CUSTOMER DETAIL MODAL ================= -->
+<div class="modal-backdrop" id="detail-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <header class="modal-head">
+      <div>
+        <h2 id="detail-title">جزئیات مشتری</h2>
+        <p id="detail-sub"></p>
+      </div>
+      <button type="button" class="icon-btn" data-close-modal title="بستن">&times;</button>
+    </header>
+    <div class="modal-body" id="detail-body"></div>
+    <footer class="modal-foot" id="detail-actions"></footer>
+  </div>
+</div>
+
+<!-- ================= DATA QUALITY MODAL ================= -->
+<div class="modal-backdrop" id="quality-modal" hidden>
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="quality-title">
+    <header class="modal-head">
+      <div>
+        <h2 id="quality-title">گزارش کیفیت داده</h2>
+        <p>هیچ اطلاعاتی حذف یا اصلاح نمی‌شود — فقط هشدار نمایش داده می‌شود.</p>
+      </div>
+      <button type="button" class="icon-btn" data-close-modal title="بستن">&times;</button>
+    </header>
+    <div class="modal-body" id="quality-body"></div>
+  </div>
+</div>
+
+<!-- ================= TOAST ================= -->
+<div class="toast" id="toast" hidden></div>
+
+<!-- ================= LIBS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<!-- Embedded copy of data/customers.json, so the app also runs over file:// -->
+<script src="data/customers.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
